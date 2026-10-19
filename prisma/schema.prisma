@@ -1,0 +1,554 @@
+// TIR Parts — схема БД. Бізнес-правила див. SPEC.md, розділи 7–10.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pg_trgm]
+}
+
+enum Role {
+  CUSTOMER
+  MANAGER
+  ADMIN
+}
+
+enum VehicleKind {
+  TRACTOR
+  TRUCK
+  TRAILER
+  BUS
+}
+
+enum OrderStatus {
+  NEW
+  CONFIRMED
+  AWAITING_PAYMENT
+  PAID
+  PACKED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  RETURNED
+}
+
+enum VinRequestStatus {
+  NEW
+  IN_PROGRESS
+  ANSWERED
+  CLOSED
+}
+
+enum StockStatus {
+  IN_STOCK
+  LOW
+  ON_ORDER
+  OUT_OF_STOCK
+}
+
+enum NumberType {
+  OE
+  CROSS
+}
+
+// ───────────────────────── Користувачі ─────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String?  @unique
+  phone        String?  @unique
+  passwordHash String?
+  name         String?
+  role         Role     @default(CUSTOMER)
+  isActive     Boolean  @default(true)
+  managerNote  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  vehicles         Vehicle[]
+  orders           Order[]
+  vinRequests      VinRequest[]         @relation("VinRequestAuthor")
+  assignedRequests VinRequest[]         @relation("VinRequestAssignee")
+  vinMessages      VinRequestMessage[]
+  addresses        Address[]
+  cart             Cart?
+  auditLogs        AuditLog[]
+  addedOeNumbers   VehicleOeNumber[]
+  statusChanges    OrderStatusHistory[]
+  importJobs       ImportJob[]
+}
+
+model Address {
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String?
+  city      String
+  branch    String?
+  street    String?
+  isDefault Boolean @default(false)
+
+  @@index([userId])
+}
+
+// ───────────────────────── Довідники вантажівок ─────────────────────────
+
+model VehicleMake {
+  id       String          @id @default(cuid())
+  name     String          @unique
+  slug     String          @unique
+  kind     VehicleKind
+  wmiCodes String[]
+  logoUrl  String?
+  country  String?
+  sort     Int             @default(0)
+  isActive Boolean         @default(true)
+  series   VehicleSeries[]
+  vehicles Vehicle[]
+  fitments Fitment[]
+  kits     ServiceKit[]
+}
+
+model VehicleSeries {
+  id       String       @id @default(cuid())
+  makeId   String
+  make     VehicleMake  @relation(fields: [makeId], references: [id], onDelete: Cascade)
+  name     String
+  slug     String
+  yearFrom Int?
+  yearTo   Int?
+  engines  EngineCode[]
+  vehicles Vehicle[]
+  fitments Fitment[]
+  kits     ServiceKit[]
+
+  @@unique([makeId, slug])
+}
+
+model EngineCode {
+  id        String         @id @default(cuid())
+  code      String
+  seriesId  String?
+  series    VehicleSeries? @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  powerHp   Int?
+  euroClass String?
+  vehicles  Vehicle[]
+  fitments  Fitment[]
+  kits      ServiceKit[]
+
+  @@index([seriesId])
+}
+
+// ───────────────────────── Гараж клієнта ─────────────────────────
+
+model Vehicle {
+  id            String         @id @default(cuid())
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind          VehicleKind
+  nickname      String?
+  vin           String?
+  chassisNumber String?
+  makeId        String?
+  make          VehicleMake?   @relation(fields: [makeId], references: [id])
+  seriesId      String?
+  series        VehicleSeries? @relation(fields: [seriesId], references: [id])
+  engineCodeId  String?
+  engineCode    EngineCode?    @relation(fields: [engineCodeId], references: [id])
+  year          Int?
+  euroClass     String?
+  gearbox       String?
+  axleConfig    String?
+  cabType       String?
+  axleBrand     String?
+  plate         String?
+  mileageKm     Int?
+  decodedJson   Json?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  oeNumbers   VehicleOeNumber[]
+  orders      Order[]
+  vinRequests VinRequest[]
+  cartItems   CartItem[]
+
+  @@index([userId])
+  @@index([vin])
+}
+
+// база "VIN → OE" — головний актив
+model VehicleOeNumber {
+  id        String   @id @default(cuid())
+  vehicleId String
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  oeNumber  String // нормалізований
+  label     String?
+  addedById String?
+  addedBy   User?    @relation(fields: [addedById], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@unique([vehicleId, oeNumber])
+  @@index([oeNumber])
+}
+
+// ───────────────────────── Каталог ─────────────────────────
+
+model Category {
+  id          String     @id @default(cuid())
+  parentId    String?
+  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Category[] @relation("CategoryTree")
+  name        String
+  slug        String     @unique
+  icon        String?
+  description String?
+  sort        Int        @default(0)
+  isActive    Boolean    @default(true)
+  products    Product[]
+
+  @@index([parentId])
+}
+
+model PartBrand {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  slug        String    @unique
+  isOriginal  Boolean   @default(false)
+  country     String?
+  logoUrl     String?
+  description String?
+  products    Product[]
+}
+
+model Product {
+  id             String      @id @default(cuid())
+  sku            String      @unique
+  article        String
+  articleNorm    String
+  name           String
+  slug           String      @unique
+  description    String?
+  brandId        String
+  brand          PartBrand   @relation(fields: [brandId], references: [id])
+  categoryId     String
+  category       Category    @relation(fields: [categoryId], references: [id])
+  price          Decimal     @db.Decimal(12, 2)
+  oldPrice       Decimal?    @db.Decimal(12, 2)
+  purchasePrice  Decimal?    @db.Decimal(12, 2)
+  stockQty       Int         @default(0)
+  stockStatus    StockStatus @default(OUT_OF_STOCK)
+  leadTimeDays   Int?
+  weightKg       Decimal?    @db.Decimal(10, 3)
+  isActive       Boolean     @default(true)
+  isPopular      Boolean     @default(false)
+  isUniversal    Boolean     @default(false) // підходить до будь-якого авто (оливи, рідини)
+  seoTitle       String?
+  seoDescription String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  images          ProductImage[]
+  numbers         ProductNumber[]
+  fitments        Fitment[]
+  attributes      ProductAttribute[]
+  kitItems        ServiceKitItem[]
+  cartItems       CartItem[]
+  orderItems      OrderItem[]
+  vinRequestItems VinRequestItem[]
+
+  @@unique([articleNorm, brandId])
+  @@index([articleNorm])
+  @@index([categoryId])
+  @@index([brandId])
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "Product_name_trgm_idx")
+}
+
+// OE-номери і крос-номери
+model ProductNumber {
+  id         String     @id @default(cuid())
+  productId  String
+  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  number     String
+  numberNorm String
+  type       NumberType
+  brandName  String?
+
+  @@index([numberNorm])
+  @@index([productId])
+}
+
+// правило застосовності
+model Fitment {
+  id           String         @id @default(cuid())
+  productId    String
+  product      Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  makeId       String? // null — правило лише за маркою осі (для причепів)
+  make         VehicleMake?   @relation(fields: [makeId], references: [id], onDelete: Cascade)
+  seriesId     String?
+  series       VehicleSeries? @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  engineCodeId String?
+  engineCode   EngineCode?    @relation(fields: [engineCodeId], references: [id], onDelete: Cascade)
+  axleBrand    String? // BPW / SAF / ROR
+  yearFrom     Int?
+  yearTo       Int?
+  chassisFrom  String?
+  chassisTo    String?
+  position     String?
+  note         String?
+
+  @@index([makeId, seriesId, engineCodeId])
+  @@index([axleBrand])
+  @@index([productId])
+}
+
+model ProductAttribute {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String
+  value     String
+  sort      Int     @default(0)
+
+  @@index([productId])
+}
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  alt       String?
+  sort      Int     @default(0)
+
+  @@index([productId])
+}
+
+model ServiceKit {
+  id           String           @id @default(cuid())
+  name         String
+  slug         String           @unique
+  description  String?
+  intervalKm   Int?
+  makeId       String?
+  make         VehicleMake?     @relation(fields: [makeId], references: [id], onDelete: SetNull)
+  seriesId     String?
+  series       VehicleSeries?   @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  engineCodeId String?
+  engineCode   EngineCode?      @relation(fields: [engineCodeId], references: [id], onDelete: SetNull)
+  isActive     Boolean          @default(true)
+  items        ServiceKitItem[]
+  createdAt    DateTime         @default(now())
+}
+
+model ServiceKitItem {
+  id        String     @id @default(cuid())
+  kitId     String
+  kit       ServiceKit @relation(fields: [kitId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  qty       Int        @default(1)
+
+  @@unique([kitId, productId])
+}
+
+// ───────────────────────── Продаж ─────────────────────────
+
+model Cart {
+  id         String     @id @default(cuid())
+  userId     String?    @unique
+  user       User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guestToken String?    @unique
+  items      CartItem[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  qty       Int
+  vehicleId String?
+  vehicle   Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+
+  @@unique([cartId, productId])
+}
+
+model Order {
+  id              String               @id @default(cuid())
+  number          Int                  @unique @default(autoincrement())
+  userId          String?
+  user            User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+  vehicleId       String?
+  vehicle         Vehicle?             @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  mileageKm       Int?
+  status          OrderStatus          @default(NEW)
+  contactName     String
+  contactPhone    String
+  contactEmail    String?
+  deliveryMethod  String
+  deliveryCity    String?
+  deliveryBranch  String?
+  deliveryAddress String?
+  paymentMethod   String
+  comment         String?
+  managerComment  String?
+  total           Decimal              @db.Decimal(12, 2)
+  items           OrderItem[]
+  history         OrderStatusHistory[]
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  name      String
+  article   String
+  brandName String?
+  price     Decimal  @db.Decimal(12, 2)
+  qty       Int
+
+  @@index([orderId])
+}
+
+model OrderStatusHistory {
+  id        String      @id @default(cuid())
+  orderId   String
+  order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status    OrderStatus
+  comment   String?
+  byUserId  String?
+  byUser    User?       @relation(fields: [byUserId], references: [id], onDelete: SetNull)
+  createdAt DateTime    @default(now())
+
+  @@index([orderId])
+}
+
+// ───────────────────────── VIN-запити ─────────────────────────
+
+model VinRequest {
+  id           String              @id @default(cuid())
+  number       Int                 @unique @default(autoincrement())
+  userId       String?
+  user         User?               @relation("VinRequestAuthor", fields: [userId], references: [id], onDelete: SetNull)
+  vehicleId    String?
+  vehicle      Vehicle?            @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  vin          String?
+  guestName    String?
+  guestPhone   String?
+  message      String
+  status       VinRequestStatus    @default(NEW)
+  assignedToId String?
+  assignedTo   User?               @relation("VinRequestAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  messages     VinRequestMessage[]
+  items        VinRequestItem[]
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  answeredAt   DateTime?
+
+  @@index([status])
+  @@index([userId])
+}
+
+model VinRequestMessage {
+  id          String     @id @default(cuid())
+  requestId   String
+  request     VinRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  authorId    String?
+  author      User?      @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  isStaff     Boolean    @default(false)
+  text        String
+  attachments String[]
+  createdAt   DateTime   @default(now())
+
+  @@index([requestId])
+}
+
+model VinRequestItem {
+  id        String     @id @default(cuid())
+  requestId String
+  request   VinRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  qty       Int        @default(1)
+  comment   String?
+
+  @@index([requestId])
+}
+
+// ───────────────────────── Система ─────────────────────────
+
+model ImportJob {
+  id        String   @id @default(cuid())
+  fileName  String
+  mapping   Json
+  status    String
+  total     Int      @default(0)
+  created   Int      @default(0)
+  updated   Int      @default(0)
+  skipped   Int      @default(0)
+  errors    Json?
+  byUserId  String
+  byUser    User     @relation(fields: [byUserId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Setting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+model Banner {
+  id       String  @id @default(cuid())
+  title    String
+  subtitle String?
+  imageUrl String?
+  link     String?
+  linkText String?
+  sort     Int     @default(0)
+  isActive Boolean @default(true)
+}
+
+model Page {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  content   String
+  updatedAt DateTime @updatedAt
+}
+
+model Faq {
+  id       String  @id @default(cuid())
+  question String
+  answer   String
+  sort     Int     @default(0)
+  isActive Boolean @default(true)
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  entity    String
+  entityId  String
+  diff      Json?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
