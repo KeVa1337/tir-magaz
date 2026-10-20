@@ -19,7 +19,7 @@ npm run dev                     # http://localhost:3000
 
 > ⚠️ `DEMO_MODE=true` дозволяє будь-кому увійти як адміністратор. Для справжнього магазину обов'язково `DEMO_MODE=false`.
 
-Розгортання на власному сервері: `npm ci && npm run build && npm run db:setup && npm start` (`db:setup` = міграції + демо-дані; повторний запуск seed скидає дані до початкових).
+Розгортання на хостингу з Node.js (Hostinger, VPS): Node 20.9+, база PostgreSQL (напр. безкоштовний Neon). Команда збірки `npm run build:deploy` (міграції + демо-дані, якщо база порожня + збірка), запуск `npm start`. Змінні: `DATABASE_URL`, `AUTH_SECRET`, `AUTH_TRUST_HOST=true`, `DEMO_MODE`, `NEXT_PUBLIC_SITE_URL`. Скинути демо-дані до початкових: `SEED_DEMO=force` на одне розгортання.
 
 Повне демо на VPS: `AUTH_SECRET=… docker compose --profile app up -d --build`, потім `docker compose exec app npm run db:seed`.
 
