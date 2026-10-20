@@ -15,7 +15,7 @@
     "test": "tsx --test tests/*.test.ts",
     "db:setup": "prisma migrate deploy && prisma db seed",
     "db:ensure": "tsx prisma/ensure-seed.ts",
-    "build:deploy": "prisma migrate deploy && npm run db:ensure && next build --webpack"
+    "build:deploy": "prisma migrate deploy && npm run db:ensure && TOKIO_WORKER_THREADS=1 RAYON_NUM_THREADS=1 UV_THREADPOOL_SIZE=2 NODE_OPTIONS=--max-old-space-size=1536 next build --webpack"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
