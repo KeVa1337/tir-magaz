@@ -1,0 +1,147 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Токени «індустріальний хайтек» (SPEC §11): графіт у темній темі, холодний сірий у світлій,
+ * акцент — сигнальний бурштин, як габаритні вогні.
+ */
+:root {
+  --radius: 0.625rem;
+  --background: #f1f4f7;
+  --foreground: #0d1117;
+  --card: #ffffff;
+  --card-foreground: #0d1117;
+  --popover: #ffffff;
+  --popover-foreground: #0d1117;
+  --primary: #ffb020;
+  --primary-foreground: #1a1100;
+  --secondary: #e4e9ef;
+  --secondary-foreground: #18202b;
+  --muted: #e8ecf1;
+  --muted-foreground: #556070;
+  --accent: #e4e9ef;
+  --accent-foreground: #18202b;
+  --destructive: #d42f2f;
+  --border: #d5dce5;
+  --input: #c9d1dc;
+  --ring: #e09500;
+  --success: #138a43;
+  --warning: #b45f06;
+  --danger: #c62828;
+  --info: #1d5fd1;
+  --grid-line: rgba(20, 40, 70, 0.06);
+  --sidebar: #0f1318;
+  --chart-1: #1d5fd1;
+  --sidebar-foreground: #c9d1db;
+}
+
+.dark {
+  --background: #0a0c0f;
+  --foreground: #e7ebf0;
+  --card: #11151a;
+  --card-foreground: #e7ebf0;
+  --popover: #141920;
+  --popover-foreground: #e7ebf0;
+  --primary: #ffb020;
+  --primary-foreground: #1a1100;
+  --secondary: #1b2129;
+  --secondary-foreground: #e7ebf0;
+  --muted: #171c23;
+  --muted-foreground: #8d97a5;
+  --accent: #1d242d;
+  --accent-foreground: #e7ebf0;
+  --destructive: #ef4444;
+  --border: #232a33;
+  --input: #2c3540;
+  --ring: #ffb020;
+  --success: #2fc56b;
+  --warning: #ffb020;
+  --danger: #f05656;
+  --info: #5b9bff;
+  --grid-line: rgba(255, 255, 255, 0.035);
+  --sidebar: #0d1014;
+  --chart-1: #4a8ef5;
+  --sidebar-foreground: #c9d1db;
+}
+
+@theme inline {
+  --font-sans: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --color-sidebar: var(--sidebar);
+  --color-chart-1: var(--chart-1);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "ss01", "cv11";
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+  h1, h2, h3, h4 {
+    @apply tracking-tight;
+  }
+}
+
+@utility bg-grid {
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+@utility font-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Простий рендер контенту сторінок (про нас, доставка) */
+.prose-tir h2 { @apply mt-8 mb-3 text-xl font-bold first:mt-0; }
+.prose-tir p { @apply my-3 leading-relaxed text-foreground/90; }
+.prose-tir ul { @apply my-3 list-disc space-y-1.5 pl-5; }
+.prose-tir strong { @apply font-semibold; }
+.prose-tir blockquote { @apply my-4 rounded-lg border-l-4 border-primary bg-muted px-4 py-3 text-sm text-muted-foreground; }
