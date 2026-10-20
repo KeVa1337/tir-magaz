@@ -34,7 +34,12 @@ export async function placeOrder(userId: string | null, input: CheckoutInput) {
   const items = cart.items
     .map((ci) => {
       const p = products.find((x) => x.id === ci.product.id);
-      return p ? { productId: p.id, name: p.name, article: p.article, brandName: p.brand.name, price: p.price, qty: ci.qty } : null;
+      return p
+        ? {
+            productId: p.id, name: p.name, article: p.article, brandName: p.brand.name,
+            price: new Prisma.Decimal(ci.product.price), qty: ci.qty, warehouse: ci.source.warehouse, leadDays: ci.source.leadDays,
+          }
+        : null;
     })
     .filter((x): x is NonNullable<typeof x> => !!x);
   if (!items.length) throw new Error("Товари з кошика недоступні");
@@ -182,4 +187,16 @@ export async function adminAddOrderItem(orderId: string, productId: string, qty:
   else await db.orderItem.create({ data: { orderId, productId, name: p.name, article: p.article, brandName: p.brand.name, price: p.price, qty } });
   await recalcTotal(orderId);
   await logAudit(byUserId, "add-item", "Order", orderId, { article: p.article, qty });
+}
+
+/** Статус замовлення для гостя: номер + телефон (порівнюємо останні 9 цифр). */
+export async function findOrderForGuest(number: number, phone: string) {
+  const digits = phone.replace(/\D/g, "").slice(-9);
+  if (!number || digits.length < 9) return null;
+  const order = await db.order.findUnique({
+    where: { number },
+    include: { items: { select: { id: true, name: true, article: true, qty: true, price: true } }, history: { orderBy: { createdAt: "asc" } } },
+  });
+  if (!order || !order.contactPhone.replace(/\D/g, "").endsWith(digits)) return null;
+  return order;
 }

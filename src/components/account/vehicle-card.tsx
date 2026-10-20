@@ -10,7 +10,7 @@ export interface VehicleCardData {
   id: string; kind: VehicleKind; nickname: string | null; vin: string | null; plate: string | null; year: number | null;
   mileageKm: number | null; euroClass: string | null; axleConfig: string | null; axleBrand: string | null; gearbox: string | null;
   make: { name: string } | null; series: { name: string } | null; engineCode: { code: string } | null;
-  oeCount?: number; active?: boolean;
+  oeCount?: number; active?: boolean; serviceLeft?: number | null;
 }
 
 /** Картка авто у вигляді «технічного паспорта» (SPEC §11). */
@@ -43,7 +43,10 @@ export function VehicleCard({ v, href }: { v: VehicleCardData; href?: string }) 
       </dl>
       <div className="flex items-center justify-between gap-2 border-t px-4 py-2.5 text-xs">
         <span className="truncate font-num text-muted-foreground">{v.vin ?? "VIN не вказано"}</span>
-        {!!v.oeCount && <span className="shrink-0 font-semibold text-success">{v.oeCount} OE-номерів</span>}
+        <span className="flex shrink-0 items-center gap-3">
+          {v.serviceLeft != null && <span className={cn("font-semibold", v.serviceLeft <= 10_000 ? "text-danger" : "text-foreground")}>ТО через {formatInt(Math.max(0, v.serviceLeft))} км</span>}
+          {!!v.oeCount && <span className="font-semibold text-success">{v.oeCount} OE</span>}
+        </span>
       </div>
     </div>
   );

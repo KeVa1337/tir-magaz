@@ -28,7 +28,7 @@ export default async function AdminOrderPage({ params }: PageProps<"/admin/order
         <div className="grid content-start gap-6">
           <Card>
             <CardHeader><CardTitle>Позиції {!editable && <span className="text-sm font-normal text-muted-foreground">(редагування закрито після відправки)</span>}</CardTitle></CardHeader>
-            <OrderItemsEditor orderId={o.id} editable={editable} items={o.items.map((i) => ({ id: i.id, name: i.name, article: i.article, brandName: i.brandName, price: toNumber(i.price), qty: i.qty }))} />
+            <OrderItemsEditor orderId={o.id} editable={editable} items={o.items.map((i) => ({ id: i.id, name: i.name, article: i.article, brandName: i.brandName, price: toNumber(i.price), qty: i.qty, warehouse: i.warehouse, leadDays: i.leadDays }))} />
           </Card>
           <Card>
             <CardHeader><CardTitle>Контакти і нотатки</CardTitle></CardHeader>

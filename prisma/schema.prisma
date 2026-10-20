@@ -167,6 +167,7 @@ model Vehicle {
   axleBrand     String?
   plate         String?
   mileageKm     Int?
+  lastServiceKm Int? // пробіг на останньому ТО — для нагадування
   decodedJson   Json?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
@@ -259,6 +260,8 @@ model Product {
   cartItems       CartItem[]
   orderItems      OrderItem[]
   vinRequestItems VinRequestItem[]
+  offers          SupplierOffer[]
+  callbacks       CallbackRequest[]
 
   @@unique([articleNorm, brandId])
   @@index([articleNorm])
@@ -368,14 +371,16 @@ model Cart {
 }
 
 model CartItem {
-  id        String   @id @default(cuid())
+  id        String         @id @default(cuid())
   cartId    String
-  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  cart      Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
   productId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product   Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
   qty       Int
   vehicleId String?
-  vehicle   Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  vehicle   Vehicle?       @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  offerId   String? // null — власний склад
+  offer     SupplierOffer? @relation(fields: [offerId], references: [id], onDelete: SetNull)
 
   @@unique([cartId, productId])
 }
@@ -420,6 +425,8 @@ model OrderItem {
   brandName String?
   price     Decimal  @db.Decimal(12, 2)
   qty       Int
+  warehouse String? // звідки відвантажується
+  leadDays  Int?
 
   @@index([orderId])
 }
@@ -551,4 +558,40 @@ model AuditLog {
 
   @@index([entity, entityId])
   @@index([createdAt])
+}
+
+// Пропозиції зі складів постачальників (крім власного складу — Product.stockQty)
+model SupplierOffer {
+  id        String     @id @default(cuid())
+  productId String
+  product   Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  warehouse String
+  city      String?
+  qty       Int
+  leadDays  Int
+  price     Decimal    @db.Decimal(12, 2)
+  cartItems CartItem[]
+
+  @@index([productId])
+}
+
+enum CallbackStatus {
+  NEW
+  DONE
+}
+
+// «Передзвоніть мені» та «Купити в 1 клік»
+model CallbackRequest {
+  id        String         @id @default(cuid())
+  name      String?
+  phone     String
+  comment   String?
+  kind      String         @default("callback") // callback | quick-order
+  productId String?
+  product   Product?       @relation(fields: [productId], references: [id], onDelete: SetNull)
+  orderId   String?
+  status    CallbackStatus @default(NEW)
+  createdAt DateTime       @default(now())
+
+  @@index([status])
 }

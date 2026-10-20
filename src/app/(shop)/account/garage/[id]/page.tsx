@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CheckCircle2, History, MessageSquareText, Pencil, ScanLine, Wrench } from "lucide-react";
 import { requireRole } from "@/server/auth/guards";
-import { getVehicle, kitsForVehicle } from "@/server/services/garage";
+import { getVehicle, kitsForVehicle, serviceStatus } from "@/server/services/garage";
 import { getVehiclePurchaseHistory } from "@/server/services/orders";
 import { getShopContext } from "@/server/context";
 import { db } from "@/server/db";
@@ -31,6 +31,7 @@ export default async function VehiclePage({ params, searchParams }: PageProps<"/
     getShopContext(),
   ]);
   const name = v.nickname ?? vehicleTitle(v);
+  const service = serviceStatus(v, kits[0]?.intervalKm ?? undefined);
   const spec: [string, string | null | undefined][] = [
     ["Тип", VEHICLE_KIND[v.kind]], ["Марка", v.make?.name], ["Серія", v.series?.name], ["Двигун", v.engineCode?.code],
     ["Рік", v.year ? String(v.year) : null], ["Номер шасі", v.chassisNumber], ["Євро", v.euroClass], ["КПП", v.gearbox],
@@ -131,8 +132,22 @@ export default async function VehiclePage({ params, searchParams }: PageProps<"/
           </Card>
 
           <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><Wrench className="size-5 text-primary" /> Комплект ТО</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="flex items-center gap-2"><Wrench className="size-5 text-primary" /> Наступне ТО</CardTitle></CardHeader>
             <CardContent className="grid gap-2">
+              {service ? (
+                <div className="mb-2 grid gap-2">
+                  <p className="text-sm">
+                    {service.left > 0 ? <>Через <b className="font-num">{formatKm(service.left)}</b></> : <b className="text-danger">Прострочено на {formatKm(-service.left)}</b>}
+                    <span className="text-muted-foreground"> · на {formatKm(service.next)}</span>
+                  </p>
+                  <div className="h-2.5 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuenow={Math.round(service.done * 100)} aria-valuemin={0} aria-valuemax={100} aria-label="Пробіг до ТО">
+                    <div className={service.due ? "h-full bg-danger" : "h-full bg-primary"} style={{ width: `${Math.round(service.done * 100)}%` }} />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Інтервал {formatKm(service.intervalKm)} · оновіть пробіг, щоб нагадування було точним</p>
+                </div>
+              ) : (
+                <p className="mb-2 text-sm text-muted-foreground"><Link href={`/account/garage/${v.id}/edit`} className="underline">Вкажіть пробіг на останньому ТО</Link> — нагадаємо про наступне.</p>
+              )}
               {kits.length ? kits.map((k) => (
                 <Link key={k.id} href={`/kits/${k.slug}`} className="flex items-center justify-between gap-2 rounded-lg border p-3 hover:border-primary/50">
                   <span className="text-sm font-semibold">{k.name}</span>

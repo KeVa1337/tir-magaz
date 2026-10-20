@@ -99,7 +99,12 @@ export async function contextFromQuick(raw: string): Promise<VehicleContext | nu
 /** Поточний контекст підбору з cookie (для серверних компонентів). */
 export async function getVehicleContext(userId: string | null | undefined): Promise<VehicleContext | null> {
   const raw = (await cookies()).get(VEHICLE_CTX_COOKIE)?.value;
-  if (!raw) return null;
+  if (!raw) {
+    // клієнт з гаражем, який ще не обрав авто — підбираємо під перше авто
+    if (!userId) return null;
+    const first = await db.vehicle.findFirst({ where: { userId }, orderBy: { createdAt: "asc" }, include: vehicleInclude });
+    return first ? contextFromVehicle(first) : null;
+  }
   if (raw.startsWith("v:")) return userId ? contextForVehicleId(raw.slice(2), userId) : null;
   if (raw.startsWith("q:")) return contextFromQuick(raw);
   return null;

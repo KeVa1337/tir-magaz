@@ -14,11 +14,12 @@ export const metadata: Metadata = { title: { default: "Адмін-панель",
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await requireRole("MANAGER", "/admin");
-  const [orders, vin] = await Promise.all([
+  const [orders, vin, calls] = await Promise.all([
     db.order.count({ where: { status: "NEW" } }),
     db.vinRequest.count({ where: { status: { in: ["NEW", "IN_PROGRESS"] } } }),
+    db.callbackRequest.count({ where: { status: "NEW" } }),
   ]);
-  const badges = { orders, vin };
+  const badges = { orders, vin, calls };
   const isAdmin = user.role === "ADMIN";
   return (
     <div className="flex min-h-dvh">

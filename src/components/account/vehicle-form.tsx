@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 export interface VehicleFormValues {
   id?: string; kind: VehicleKind; nickname?: string | null; vin?: string | null; chassisNumber?: string | null;
   makeId?: string | null; seriesId?: string | null; engineCodeId?: string | null; year?: number | null; euroClass?: string | null;
-  gearbox?: string | null; axleConfig?: string | null; cabType?: string | null; axleBrand?: string | null; plate?: string | null; mileageKm?: number | null;
+  gearbox?: string | null; axleConfig?: string | null; cabType?: string | null; axleBrand?: string | null; plate?: string | null; mileageKm?: number | null; lastServiceKm?: number | null;
 }
 
 const EURO = ["Euro 3", "Euro 4", "Euro 5", "EEV", "Euro 6"];
@@ -167,7 +167,7 @@ export function VehicleForm({ directory, initial, autoDecode }: { directory: Dir
         )}
       </section>
 
-      <section className="grid gap-4 rounded-xl border bg-card p-5 sm:grid-cols-3">
+      <section className="grid gap-4 rounded-xl border bg-card p-5 sm:grid-cols-2 lg:grid-cols-4">
         <Field label="Назва в гаражі" htmlFor="nickname" hint="Напр. «Білий DAF Петра»">
           <Input id="nickname" name="nickname" value={v.nickname ?? ""} onChange={(e) => set({ nickname: e.target.value })} />
         </Field>
@@ -177,6 +177,11 @@ export function VehicleForm({ directory, initial, autoDecode }: { directory: Dir
         <Field label="Пробіг, км" htmlFor="mileageKm" error={fe.mileageKm}>
           <Input id="mileageKm" name="mileageKm" inputMode="numeric" value={v.mileageKm ?? ""} onChange={(e) => set({ mileageKm: e.target.value ? Number(e.target.value.replace(/\D/g, "")) : null })} />
         </Field>
+        {v.kind !== "TRAILER" && (
+          <Field label="Пробіг на останньому ТО" htmlFor="lastServiceKm" error={fe.lastServiceKm} hint="Нагадаємо про наступне ТО">
+            <Input id="lastServiceKm" name="lastServiceKm" inputMode="numeric" value={v.lastServiceKm ?? ""} onChange={(e) => set({ lastServiceKm: e.target.value ? Number(e.target.value.replace(/\D/g, "")) : null })} />
+          </Field>
+        )}
       </section>
 
       <FormMessage state={state} />

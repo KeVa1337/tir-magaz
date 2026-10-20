@@ -61,6 +61,7 @@ async function buildData(input: VehicleInput) {
     axleBrand: input.kind === "TRAILER" ? (input.axleBrand ?? null) : null,
     plate: input.plate?.toUpperCase() ?? null,
     mileageKm: input.mileageKm ?? null,
+    lastServiceKm: input.lastServiceKm ?? null,
     decodedJson: decoded ? (JSON.parse(JSON.stringify(decoded)) as Prisma.InputJsonValue) : undefined,
   };
 }
@@ -85,6 +86,17 @@ export async function updateMileage(userId: string, id: string, mileageKm: numbe
   const v = await db.vehicle.findFirst({ where: { id, userId } });
   if (!v) throw new Error("Авто не знайдено");
   await db.vehicle.update({ where: { id }, data: { mileageKm } });
+}
+
+export const DEFAULT_SERVICE_INTERVAL = 100_000;
+
+/** Нагадування про ТО: скільки лишилось до наступного обслуговування. */
+export function serviceStatus(v: { mileageKm: number | null; lastServiceKm: number | null }, intervalKm = DEFAULT_SERVICE_INTERVAL) {
+  if (v.mileageKm == null || v.lastServiceKm == null) return null;
+  const next = v.lastServiceKm + intervalKm;
+  const left = next - v.mileageKm;
+  const done = Math.min(1, Math.max(0, (v.mileageKm - v.lastServiceKm) / intervalKm));
+  return { next, left, done, intervalKm, due: left <= 10_000 };
 }
 
 /** Комплекти ТО, що підходять до авто (за двигуном → серією → маркою). */

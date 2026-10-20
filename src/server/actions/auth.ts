@@ -37,15 +37,25 @@ export async function registerAction(_prev: ActionState, fd: FormData): Promise<
   return { ok: true };
 }
 
-/** Вхід за телефоном — заглушка до підключення SMS-провайдера (🟡). */
-export async function phoneOtpAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
-  const phone = String(fd.get("phone") ?? "").trim();
-  if (phone.replace(/\D/g, "").length < 10) return { fieldErrors: { phone: ["Вкажіть номер телефону"] } };
-  return { message: `Демо: SMS із кодом на ${phone} не надсилається — вхід за телефоном з'явиться після підключення SMS-провайдера.` };
-}
-
 export async function logoutAction() {
   const jar = await cookies();
   if (jar.get(VEHICLE_CTX_COOKIE)?.value.startsWith("v:")) jar.delete(VEHICLE_CTX_COOKIE);
   await signOut({ redirectTo: "/" });
+}
+
+const DEMO_ACCOUNTS = { client: "client@demo.ua", manager: "manager@demo.ua", admin: "admin@demo.ua" } as const;
+
+/** Демо-режим: вхід у тестову роль одним кліком (без введення пароля). */
+export async function demoLoginAction(role: keyof typeof DEMO_ACCOUNTS | "guest", redirectTo?: string) {
+  if (process.env.DEMO_MODE !== "true") throw new Error("Демо-вхід вимкнено");
+  const target = redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//") ? redirectTo : undefined;
+  if (role === "guest") {
+    await signOut({ redirectTo: target ?? "/" });
+    return;
+  }
+  const email = DEMO_ACCOUNTS[role];
+  const user = await verifyCredentials(email, "demo1234");
+  if (!user) throw new Error("Демо-користувача не знайдено — запустіть seed");
+  await mergeGuestCart(user.id);
+  await signIn("credentials", { email, password: "demo1234", redirectTo: target ?? (role === "client" ? "/account" : "/admin") });
 }

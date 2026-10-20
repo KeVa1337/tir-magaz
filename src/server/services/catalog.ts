@@ -9,10 +9,11 @@ export const productCardSelect = {
   id: true, slug: true, name: true, article: true, articleNorm: true, price: true, oldPrice: true,
   stockQty: true, stockStatus: true, leadTimeDays: true, isUniversal: true,
   brand: { select: { name: true, isOriginal: true } },
-  category: { select: { icon: true, name: true } },
+  category: { select: { icon: true, name: true, slug: true } },
   images: { select: { url: true }, orderBy: { sort: "asc" }, take: 1 },
   numbers: { select: { numberNorm: true } },
   fitments: { select: fitmentSelect },
+  offers: { select: { price: true, leadDays: true }, orderBy: [{ leadDays: "asc" }, { price: "asc" }] },
 } satisfies Prisma.ProductSelect;
 
 type CardRow = Prisma.ProductGetPayload<{ select: typeof productCardSelect }>;
@@ -21,7 +22,9 @@ type CardRow = Prisma.ProductGetPayload<{ select: typeof productCardSelect }>;
 export interface ProductCardDTO {
   id: string; slug: string; name: string; article: string; brand: string; isOriginal: boolean;
   price: number; oldPrice: number | null; stockQty: number; stockStatus: StockStatus; leadTimeDays: number | null;
-  image: string | null; icon: string | null; categoryName: string; fit: FitResult | null;
+  image: string | null; icon: string | null; kind: string; categoryName: string; fit: FitResult | null;
+  /** пропозиції складів партнерів */
+  offers: number; offerMinPrice: number | null; offerMinLead: number | null;
 }
 
 export function toCard(p: CardRow, ctx: VehicleContext | null): ProductCardDTO {
@@ -29,8 +32,11 @@ export function toCard(p: CardRow, ctx: VehicleContext | null): ProductCardDTO {
     id: p.id, slug: p.slug, name: p.name, article: p.article, brand: p.brand.name, isOriginal: p.brand.isOriginal,
     price: toNumber(p.price), oldPrice: p.oldPrice ? toNumber(p.oldPrice) : null,
     stockQty: p.stockQty, stockStatus: p.stockStatus, leadTimeDays: p.leadTimeDays,
-    image: p.images[0]?.url ?? null, icon: p.category.icon, categoryName: p.category.name,
+    image: p.images[0]?.url ?? null, icon: p.category.icon, kind: p.category.slug, categoryName: p.category.name,
     fit: ctx ? evaluateFit(p, ctx) : null,
+    offers: p.offers.length,
+    offerMinPrice: p.offers.length ? Math.min(...p.offers.map((o) => toNumber(o.price))) : null,
+    offerMinLead: p.offers[0]?.leadDays ?? null,
   };
 }
 
@@ -163,6 +169,7 @@ export async function getProductBySlug(slug: string) {
         orderBy: [{ make: { sort: "asc" } }, { yearFrom: "asc" }],
       },
       kitItems: { include: { kit: { select: { name: true, slug: true } } } },
+      offers: { orderBy: [{ leadDays: "asc" }, { price: "asc" }] },
     },
   });
 }
@@ -268,3 +275,10 @@ export async function getVehicleDirectory() {
 }
 
 export type VehicleDirectory = Awaited<ReturnType<typeof getVehicleDirectory>>;
+
+/** Товари за списком id у заданому порядку (обране, переглянуті). */
+export async function productsByIds(ids: string[], ctx: VehicleContext | null) {
+  const rows = await db.product.findMany({ where: { id: { in: ids }, isActive: true }, select: productCardSelect });
+  const order = new Map(ids.map((id, i) => [id, i]));
+  return rows.sort((a, b) => order.get(a.id)! - order.get(b.id)!).map((r) => toCard(r, ctx));
+}

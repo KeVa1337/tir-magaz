@@ -12,6 +12,7 @@ import * as products from "@/server/services/admin/products";
 import * as catalog from "@/server/services/admin/catalog";
 import * as content from "@/server/services/admin/content";
 import * as imp from "@/server/services/admin/import";
+import * as callbacks from "@/server/services/callbacks";
 import { SETTING_KEYS, setSetting } from "@/server/services/settings";
 import { logAudit } from "@/server/services/audit";
 import { saveUploads } from "@/server/services/uploads";
@@ -383,3 +384,9 @@ export async function deleteTemplateAction(name: string) {
   return { ok: true, templates: await imp.getTemplates() };
 }
 
+
+// ───────── заявки на дзвінок ─────────
+export async function setCallbackStatusAction(id: string, status: "NEW" | "DONE") {
+  const u = await assertRole("MANAGER");
+  return run(() => callbacks.adminSetCallbackStatus(id, status, u.id), ["/admin"]);
+}

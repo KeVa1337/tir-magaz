@@ -54,6 +54,7 @@ export const PAYMENT_METHODS = [
 ] as const;
 
 export function deliveryLabel(id: string) {
+  if (id === "phone") return "Уточнити телефоном (швидке замовлення)";
   return DELIVERY_METHODS.find((m) => m.id === id)?.label ?? id;
 }
 export function paymentLabel(id: string) {

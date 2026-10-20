@@ -26,13 +26,13 @@ function Row({ cat, roots, depth, children }: { cat: Cat; roots: Cat[]; depth: n
   const [pending, start] = React.useTransition();
   return (
     <li ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className={cn("rounded-lg", isDragging && "relative z-10 opacity-80 shadow-xl")}>
-      <div className={cn("flex items-center gap-2 rounded-lg border bg-card px-2 py-2", depth && "ml-8", !cat.isActive && "opacity-60")}>
+      <div className={cn("flex min-w-0 items-center gap-2 rounded-lg border bg-card px-2 py-2", depth && "ml-4 sm:ml-8", !cat.isActive && "opacity-60")}>
         <button className="cursor-grab touch-none rounded p-1 text-muted-foreground hover:bg-accent active:cursor-grabbing" aria-label={`Перетягнути ${cat.name}`} {...attributes} {...listeners}><GripVertical className="size-4" /></button>
         <CategoryIcon icon={cat.icon} className="size-4 text-primary" />
-        <span className="font-semibold">{cat.name}</span>
-        <span className="font-num text-xs text-muted-foreground">/{cat.slug}</span>
+        <span className="min-w-0 truncate font-semibold">{cat.name}</span>
+        <span className="font-num text-xs text-muted-foreground max-sm:hidden">/{cat.slug}</span>
         {!cat.isActive && <Badge tone="red">прихована</Badge>}
-        <span className="ml-auto text-xs text-muted-foreground tabular-nums">{cat.count} тов.</span>
+        <span className="ml-auto shrink-0 text-xs text-muted-foreground tabular-nums">{cat.count} тов.</span>
         <CategoryDialog cat={cat} roots={roots} trigger={<Button size="icon-sm" variant="ghost" aria-label="Редагувати"><Pencil /></Button>} />
         <Button size="icon-sm" variant="ghost" className="text-danger" disabled={pending} aria-label="Видалити" onClick={() => start(async () => { const r = await deleteCategoryAction(cat.id); if (!r.ok) toast.error(r.error); else toast.success("Видалено"); })}><Trash2 /></Button>
       </div>

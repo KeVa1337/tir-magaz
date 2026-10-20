@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Car, Plus } from "lucide-react";
 import { requireRole } from "@/server/auth/guards";
-import { listVehicles } from "@/server/services/garage";
+import { listVehicles, serviceStatus } from "@/server/services/garage";
 import { getShopContext } from "@/server/context";
 import { VehicleCard } from "@/components/account/vehicle-card";
 import { EmptyState, PageHeader } from "@/components/shared/misc";
@@ -19,7 +19,7 @@ export default async function GaragePage() {
       </PageHeader>
       {vehicles.length ? (
         <div className="grid gap-4 md:grid-cols-2">
-          {vehicles.map((v) => <VehicleCard key={v.id} v={{ ...v, oeCount: v.oeNumbers.length, active: ctx?.vehicleId === v.id }} href={`/account/garage/${v.id}`} />)}
+          {vehicles.map((v) => <VehicleCard key={v.id} v={{ ...v, oeCount: v.oeNumbers.length, active: ctx?.vehicleId === v.id, serviceLeft: serviceStatus(v)?.left ?? null }} href={`/account/garage/${v.id}`} />)}
           <Link href="/account/garage/new" className="bg-grid flex min-h-40 flex-col items-center justify-center gap-2 rounded-xl border border-dashed text-muted-foreground hover:border-primary/60 hover:text-foreground">
             <Plus className="size-7" /><span className="font-semibold">Додати тягач або причіп</span>
           </Link>

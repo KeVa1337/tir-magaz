@@ -24,13 +24,14 @@ function CartRow({ item }: { item: CartView["items"][number] }) {
   return (
     <li className={cn("flex gap-3 p-3 sm:gap-4 sm:p-4", pending && "opacity-60")}>
       <Link href={`/product/${item.product.slug}`} className="size-20 shrink-0 overflow-hidden rounded-lg border sm:size-24">
-        <ProductImage src={item.product.image} alt={item.product.name} icon={item.product.icon} />
+        <ProductImage src={item.product.image} alt={item.product.name} icon={item.product.icon} kind={item.product.kind} />
       </Link>
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <Link href={`/product/${item.product.slug}`} className="line-clamp-2 text-sm font-semibold hover:underline">{item.product.name}</Link>
         <p className="text-xs text-muted-foreground"><span className="font-num text-foreground/80">{item.product.article}</span> · {item.product.brand}</p>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <StockBadge status={item.product.stockStatus} qty={item.product.stockQty} leadTimeDays={item.product.leadTimeDays} />
+          <span className="text-xs text-muted-foreground">{item.source.warehouse}{item.source.leadDays ? ` · ${item.source.leadDays} дн.` : ""}</span>
           {item.vehicle && <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Car className="size-3.5" /> {item.vehicle.nickname ?? "авто з гаража"}</span>}
         </div>
         <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-1">

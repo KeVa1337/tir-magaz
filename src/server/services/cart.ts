@@ -11,12 +11,20 @@ const itemInclude = {
   product: {
     select: {
       id: true, slug: true, name: true, article: true, price: true, oldPrice: true, stockStatus: true, stockQty: true,
-      leadTimeDays: true, isActive: true, brand: { select: { name: true } }, category: { select: { icon: true } },
+      leadTimeDays: true, isActive: true, brand: { select: { name: true } }, category: { select: { icon: true, slug: true } },
       images: { select: { url: true }, take: 1, orderBy: { sort: "asc" as const } },
     },
   },
   vehicle: { select: { id: true, nickname: true } },
+  offer: { select: { id: true, warehouse: true, city: true, leadDays: true, price: true, qty: true } },
 };
+
+export const OWN_WAREHOUSE = "Власний склад · Київ";
+
+/** Ціна і склад позиції: обрана пропозиція партнера або власний склад. */
+export function linePrice(i: { offer: { price: { toString(): string } } | null; product: { price: { toString(): string } } }) {
+  return toNumber(i.offer ? i.offer.price : i.product.price);
+}
 
 /** Знайти кошик без створення (для рендеру). */
 async function findCart(userId: string | null) {
@@ -52,13 +60,16 @@ export async function getCartView(userId: string | null) {
       id: i.id,
       qty: i.qty,
       vehicle: i.vehicle,
+      source: i.offer
+        ? { warehouse: `${i.offer.warehouse} · ${i.offer.city ?? ""}`.trim(), leadDays: i.offer.leadDays as number | null }
+        : { warehouse: OWN_WAREHOUSE, leadDays: null as number | null },
       product: {
         id: i.product.id, slug: i.product.slug, name: i.product.name, article: i.product.article, brand: i.product.brand.name,
-        price: toNumber(i.product.price), oldPrice: i.product.oldPrice ? toNumber(i.product.oldPrice) : null,
+        price: linePrice(i), oldPrice: !i.offer && i.product.oldPrice ? toNumber(i.product.oldPrice) : null,
         stockStatus: i.product.stockStatus, stockQty: i.product.stockQty, leadTimeDays: i.product.leadTimeDays,
-        image: i.product.images[0]?.url ?? null, icon: i.product.category.icon,
+        image: i.product.images[0]?.url ?? null, icon: i.product.category.icon, kind: i.product.category.slug,
       },
-      lineTotal: toNumber(i.product.price) * i.qty,
+      lineTotal: linePrice(i) * i.qty,
     }));
   return {
     items,
@@ -74,9 +85,20 @@ export async function getCartCount(userId: string | null) {
   return cart?.items.reduce((s, i) => s + i.qty, 0) ?? 0;
 }
 
-export async function addToCart(userId: string | null, productId: string, qty = 1, vehicleId?: string | null) {
-  const product = await db.product.findFirst({ where: { id: productId, isActive: true }, select: { id: true } });
+export async function addToCart(userId: string | null, productId: string, qty = 1, vehicleId?: string | null, offerId?: string | null) {
+  const product = await db.product.findFirst({
+    where: { id: productId, isActive: true },
+    select: { id: true, stockStatus: true, offers: { select: { id: true }, orderBy: [{ leadDays: "asc" }, { price: "asc" }], take: 1 } },
+  });
   if (!product) throw new Error("Товар недоступний");
+  if (offerId) {
+    const offer = await db.supplierOffer.findFirst({ where: { id: offerId, productId }, select: { id: true } });
+    if (!offer) offerId = null;
+  } else if (offerId === undefined && (product.stockStatus === "OUT_OF_STOCK" || product.stockStatus === "ON_ORDER") && product.offers[0]) {
+    // власного залишку немає — беремо найшвидшу пропозицію партнера
+    offerId = product.offers[0].id;
+  }
+  if (!product.offers.length && product.stockStatus === "OUT_OF_STOCK") throw new Error("Товару немає в наявності");
   if (vehicleId && userId) {
     const own = await db.vehicle.findFirst({ where: { id: vehicleId, userId }, select: { id: true } });
     if (!own) vehicleId = null;
@@ -84,15 +106,27 @@ export async function addToCart(userId: string | null, productId: string, qty = 
   const cartId = await ensureCartId(userId);
   const existing = await db.cartItem.findUnique({ where: { cartId_productId: { cartId, productId } } });
   if (existing) {
-    await db.cartItem.update({ where: { id: existing.id }, data: { qty: Math.min(MAX_QTY, existing.qty + qty), vehicleId: vehicleId ?? existing.vehicleId } });
+    await db.cartItem.update({
+      where: { id: existing.id },
+      data: { qty: Math.min(MAX_QTY, existing.qty + qty), vehicleId: vehicleId ?? existing.vehicleId, offerId: offerId === undefined ? existing.offerId : offerId },
+    });
   } else {
-    await db.cartItem.create({ data: { cartId, productId, qty: Math.min(MAX_QTY, Math.max(1, qty)), vehicleId } });
+    await db.cartItem.create({ data: { cartId, productId, qty: Math.min(MAX_QTY, Math.max(1, qty)), vehicleId, offerId: offerId ?? null } });
   }
   await db.cart.update({ where: { id: cartId }, data: { updatedAt: new Date() } });
 }
 
 export async function addManyToCart(userId: string | null, items: { productId: string; qty: number }[], vehicleId?: string | null) {
-  for (const it of items) await addToCart(userId, it.productId, it.qty, vehicleId);
+  let added = 0;
+  for (const it of items) {
+    try {
+      await addToCart(userId, it.productId, it.qty, vehicleId);
+      added++;
+    } catch {
+      // позиції, яких немає ніде, пропускаємо
+    }
+  }
+  return added;
 }
 
 async function ownItem(userId: string | null, itemId: string) {
@@ -128,7 +162,7 @@ export async function mergeGuestCart(userId: string) {
     for (const it of guest.items) {
       const ex = userCart.items.find((u) => u.productId === it.productId);
       if (ex) await db.cartItem.update({ where: { id: ex.id }, data: { qty: Math.min(MAX_QTY, ex.qty + it.qty) } });
-      else await db.cartItem.create({ data: { cartId: userCart.id, productId: it.productId, qty: it.qty } });
+      else await db.cartItem.create({ data: { cartId: userCart.id, productId: it.productId, qty: it.qty, offerId: it.offerId } });
     }
   }
   if (guest) await db.cart.delete({ where: { id: guest.id } });

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Plus } from "lucide-react";
 import { requireRole } from "@/server/auth/guards";
-import { listVehicles } from "@/server/services/garage";
+import { listVehicles, serviceStatus } from "@/server/services/garage";
 import { listUserOrders } from "@/server/services/orders";
 import { listUserVinRequests } from "@/server/services/vinRequests";
 import { getShopContext } from "@/server/context";
@@ -35,7 +35,7 @@ export default async function AccountHome() {
           <Button asChild variant="ghost" size="sm"><Link href="/account/garage/new"><Plus /> Додати</Link></Button>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
-          {vehicles.map((v) => <VehicleCard key={v.id} v={{ ...v, oeCount: v.oeNumbers.length, active: ctx?.vehicleId === v.id }} href={`/account/garage/${v.id}`} />)}
+          {vehicles.map((v) => <VehicleCard key={v.id} v={{ ...v, oeCount: v.oeNumbers.length, active: ctx?.vehicleId === v.id, serviceLeft: serviceStatus(v)?.left ?? null }} href={`/account/garage/${v.id}`} />)}
           {!vehicles.length && (
             <Link href="/account/garage/new" className="bg-grid flex min-h-36 items-center justify-center gap-2 rounded-xl border border-dashed font-semibold text-muted-foreground hover:text-foreground"><Plus /> Додайте перше авто за VIN</Link>
           )}

@@ -35,7 +35,7 @@ export default async function OrderPage({ params }: PageProps<"/account/orders/[
                 <li key={i.id} className="flex justify-between gap-3 px-5 py-3">
                   <span className="min-w-0">
                     {i.product?.isActive ? <Link href={`/product/${i.product.slug}`} className="font-semibold hover:underline">{i.name}</Link> : <span className="font-semibold">{i.name}</span>}
-                    <span className="block text-xs text-muted-foreground"><span className="font-num">{i.article}</span> · {i.brandName} · {formatPrice(i.price)} × {i.qty}</span>
+                    <span className="block text-xs text-muted-foreground"><span className="font-num">{i.article}</span> · {i.brandName} · {formatPrice(i.price)} × {i.qty}{i.warehouse ? ` · ${i.warehouse}` : ""}</span>
                   </span>
                   <span className="shrink-0 font-bold tabular-nums">{formatPrice(toNumber(i.price) * i.qty)}</span>
                 </li>

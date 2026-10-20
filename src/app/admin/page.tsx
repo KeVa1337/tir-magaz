@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, ClipboardList, ImageOff, ScanLine, TrendingUp, Users } from "lucide-react";
+import { AlertTriangle, ClipboardList, ImageOff, PhoneCall, ScanLine, TrendingUp } from "lucide-react";
 import { dashboardStats } from "@/server/services/admin/dashboard";
 import { getSettings } from "@/server/services/settings";
 import { SalesChart, SlaTimer } from "@/components/admin/widgets";
@@ -17,7 +17,7 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
     { label: "Нові замовлення", value: String(s.newOrders), href: "/admin/orders?status=NEW", icon: ClipboardList, accent: s.newOrders > 0 },
     { label: "VIN-запити в черзі", value: String(s.vinQueue.length), href: "/admin/vin-requests", icon: ScanLine, accent: s.vinQueue.length > 0 },
     { label: "Виручка за 30 днів", value: formatPrice(s.sales.revenue), sub: `${s.sales.count} замовлень · середній чек ${formatPrice(Math.round(s.sales.avg))}`, icon: TrendingUp },
-    { label: "Нові клієнти за 30 днів", value: String(s.newCustomers), href: "/admin/customers", icon: Users },
+    { label: "Чекають дзвінка", value: String(s.newCalls), href: "/admin/callbacks", icon: PhoneCall, accent: s.newCalls > 0 },
   ];
   return (
     <div className="grid gap-6">

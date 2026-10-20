@@ -48,6 +48,7 @@ export const vehicleSchema = z.object({
   axleBrand: optStr,
   plate: optStr,
   mileageKm: optInt,
+  lastServiceKm: optInt,
 });
 
 export const checkoutSchema = z

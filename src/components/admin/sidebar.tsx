@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  ClipboardList, FileSpreadsheet, FolderTree, Gauge, History, LayoutTemplate, Menu, Package, ScanLine, Search, Settings, Store, Tags, UserCog, Users, Wrench,
+  ClipboardList, PhoneCall, FileSpreadsheet, FolderTree, Gauge, History, LayoutTemplate, Menu, Package, ScanLine, Search, Settings, Store, Tags, UserCog, Users, Wrench,
 } from "lucide-react";
 import { Dialog, DialogTrigger, SheetContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ const GROUPS = [
     { href: "/admin", label: "Дашборд", icon: Gauge, exact: true },
     { href: "/admin/orders", label: "Замовлення", icon: ClipboardList, badge: "orders" },
     { href: "/admin/vin-requests", label: "VIN-запити", icon: ScanLine, badge: "vin" },
+    { href: "/admin/callbacks", label: "Дзвінки, 1 клік", icon: PhoneCall, badge: "calls" },
     { href: "/admin/customers", label: "Клієнти", icon: Users },
   ] },
   { title: "Каталог", items: [

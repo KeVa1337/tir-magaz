@@ -5,7 +5,8 @@ import { toNumber } from "@/lib/format";
 export async function dashboardStats(days = 30) {
   const since = new Date(Date.now() - days * 86400000);
   since.setHours(0, 0, 0, 0);
-  const [newOrders, vinQueue, orders, noPhoto, noPrice, imports, recentOrders, customers] = await Promise.all([
+  const [newCalls, newOrders, vinQueue, orders, noPhoto, noPrice, imports, recentOrders, customers] = await Promise.all([
+    db.callbackRequest.count({ where: { status: "NEW" } }),
     db.order.count({ where: { status: "NEW" } }),
     db.vinRequest.findMany({
       where: { status: { in: ["NEW", "IN_PROGRESS"] } },
@@ -40,7 +41,7 @@ export async function dashboardStats(days = 30) {
   const count = series.reduce((s, d) => s + d.count, 0);
 
   return {
-    newOrders, vinQueue, noPhoto, noPrice, imports, recentOrders, newCustomers: customers,
+    newCalls, newOrders, vinQueue, noPhoto, noPrice, imports, recentOrders, newCustomers: customers,
     sales: { series, revenue, count, avg: count ? revenue / count : 0, days },
   };
 }

@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { addKitToCartAction, addToCartAction } from "@/server/actions/shop";
 import { cn } from "@/lib/utils";
 
-export function AddToCartButton({ productId, disabled, size = "default", withQty, className, label = "В кошик" }: {
-  productId: string; disabled?: boolean; size?: "default" | "sm" | "lg" | "xl"; withQty?: boolean; className?: string; label?: string;
+export function AddToCartButton({ productId, offerId, disabled, size = "default", withQty, className, label = "В кошик", variant }: {
+  productId: string; offerId?: string | null; disabled?: boolean; size?: "default" | "sm" | "lg" | "xl"; withQty?: boolean; className?: string; label?: string;
+  variant?: "default" | "outline" | "secondary";
 }) {
   const router = useRouter();
   const [qty, setQty] = React.useState(1);
@@ -18,7 +19,7 @@ export function AddToCartButton({ productId, disabled, size = "default", withQty
 
   const add = () =>
     start(async () => {
-      const res = await addToCartAction(productId, qty);
+      const res = await addToCartAction(productId, qty, undefined, offerId);
       if (!res.ok) return void toast.error(res.error ?? "Не вдалося додати");
       setAdded(true);
       setTimeout(() => setAdded(false), 1500);
@@ -26,7 +27,7 @@ export function AddToCartButton({ productId, disabled, size = "default", withQty
     });
 
   return (
-    <div className={cn("flex items-center gap-2", className)}>
+    <div className={cn("flex items-center gap-2", withQty && "flex-wrap", className)}>
       {withQty && (
         <div className="flex h-12 items-center rounded-lg border bg-card">
           <button type="button" className="flex h-full w-11 cursor-pointer items-center justify-center hover:bg-accent disabled:opacity-40" onClick={() => setQty((q) => Math.max(1, q - 1))} disabled={qty <= 1} aria-label="Менше"><Minus className="size-4" /></button>
@@ -34,7 +35,7 @@ export function AddToCartButton({ productId, disabled, size = "default", withQty
           <button type="button" className="flex h-full w-11 cursor-pointer items-center justify-center hover:bg-accent" onClick={() => setQty((q) => Math.min(999, q + 1))} aria-label="Більше"><Plus className="size-4" /></button>
         </div>
       )}
-      <Button size={size} onClick={add} disabled={disabled || pending} className={cn(withQty && "flex-1")}>
+      <Button size={size} variant={variant} onClick={add} disabled={disabled || pending} className={cn(withQty && "min-w-44 flex-1")}>
         {pending ? <Loader2 className="animate-spin" /> : added ? <Check /> : <ShoppingCart />}
         {label}
       </Button>

@@ -19,6 +19,7 @@ function buildVin(prefix8: string, yearCode: string, plant: string, serial6: str
 async function clean() {
   // порядок важливий через зовнішні ключі
   await db.auditLog.deleteMany();
+  await db.callbackRequest.deleteMany();
   await db.importJob.deleteMany();
   await db.vinRequestItem.deleteMany();
   await db.vinRequestMessage.deleteMany();
@@ -28,6 +29,7 @@ async function clean() {
   await db.order.deleteMany();
   await db.cartItem.deleteMany();
   await db.cart.deleteMany();
+  await db.supplierOffer.deleteMany();
   await db.serviceKitItem.deleteMany();
   await db.serviceKit.deleteMany();
   await db.vehicleOeNumber.deleteMany();
@@ -151,6 +153,26 @@ async function main() {
   }
   console.log(`   створено ${products.length} товарів`);
 
+  console.log("→ пропозиції складів партнерів");
+  const WAREHOUSES = [
+    { warehouse: "Склад партнера", city: "Львів", lead: [1, 2], k: [0.94, 1.0] },
+    { warehouse: "Склад партнера", city: "Одеса", lead: [2, 3], k: [0.92, 0.99] },
+    { warehouse: "Склад у ЄС", city: "Польща", lead: [5, 8], k: [0.82, 0.92] },
+  ];
+  const offerRows: { productId: string; warehouse: string; city: string; qty: number; leadDays: number; price: Prisma.Decimal }[] = [];
+  for (const p of products) {
+    for (const w of WAREHOUSES) {
+      if (rnd() < 0.45) continue;
+      const k = w.k[0] + rnd() * (w.k[1] - w.k[0]);
+      offerRows.push({
+        productId: productIds[p.key], warehouse: w.warehouse, city: w.city, qty: int(1, 30),
+        leadDays: int(w.lead[0], w.lead[1]), price: new Prisma.Decimal(Math.round((p.price * k) / 10) * 10),
+      });
+    }
+  }
+  await db.supplierOffer.createMany({ data: offerRows });
+  console.log(`   ${offerRows.length} пропозицій`);
+
   const find = (pred: (p: SeedProduct) => boolean) => products.find(pred);
   const fitsSeries = (p: SeedProduct, make: string, series: string) =>
     p.fitments.some((f) => f.make === make && f.series === series);
@@ -184,7 +206,7 @@ async function main() {
       userId: client.id, kind: "TRACTOR", nickname: "Білий DAF", vin: dafVin, chassisNumber: dafVin.slice(11),
       makeId: makeIds.daf, seriesId: seriesIds["daf/xf-106"], engineCodeId: engineIds["daf/xf-106/MX-13"],
       year: 2016, euroClass: "Euro 6", gearbox: "ZF AS-Tronic 12AS2130", axleConfig: "4x2", cabType: "Super Space Cab",
-      plate: "AM 1234 EX", mileageKm: 812_000,
+      plate: "AM 1234 EX", mileageKm: 812_000, lastServiceKm: 690_000,
     },
   });
   const man = await db.vehicle.create({
@@ -192,7 +214,7 @@ async function main() {
       userId: client.id, kind: "TRACTOR", nickname: "MAN Сірий", vin: manVin, chassisNumber: manVin.slice(11),
       makeId: makeIds.man, seriesId: seriesIds["man/tgx"], engineCodeId: engineIds["man/tgx/D2676 LF"],
       year: 2014, euroClass: "Euro 5", gearbox: "TipMatic 12", axleConfig: "4x2", cabType: "XLX",
-      plate: "AM 5678 EX", mileageKm: 1_045_000,
+      plate: "AM 5678 EX", mileageKm: 1_045_000, lastServiceKm: 960_000,
     },
   });
   const trailer = await db.vehicle.create({
@@ -336,6 +358,14 @@ async function main() {
       },
     });
   }
+
+  const anyProduct = allProducts[5];
+  await db.callbackRequest.createMany({
+    data: [
+      { name: "Микола", phone: "+380677770011", comment: "Порадьте колодки на Renault Premium", createdAt: new Date(Date.now() - 25 * 60000) },
+      { name: "Юрій", phone: "+380503330022", kind: "quick-order", productId: anyProduct.id, comment: "Швидке замовлення: 1 шт.", createdAt: new Date(Date.now() - 2 * 3600000) },
+    ],
+  });
 
   console.log("→ контент і налаштування");
   for (const [key, value] of Object.entries(SETTINGS)) await db.setting.create({ data: { key, value } });

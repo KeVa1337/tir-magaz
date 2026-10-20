@@ -8,6 +8,7 @@ import { db } from "@/server/db";
 import * as cart from "@/server/services/cart";
 import { VEHICLE_CTX_COOKIE } from "@/server/services/fitment";
 import { placeOrder } from "@/server/services/orders";
+import { createCallback, quickOrder } from "@/server/services/callbacks";
 import { autocomplete } from "@/server/services/search";
 import { getVehicleContext } from "@/server/services/fitment";
 import { VinService } from "@/server/vin/service";
@@ -17,7 +18,7 @@ async function uid() {
   return (await getSessionUser())?.id ?? null;
 }
 
-export async function addToCartAction(productId: string, qty = 1, vehicleId?: string | null) {
+export async function addToCartAction(productId: string, qty = 1, vehicleId?: string | null, offerId?: string | null) {
   try {
     const userId = await uid();
     let vid = vehicleId;
@@ -26,7 +27,7 @@ export async function addToCartAction(productId: string, qty = 1, vehicleId?: st
       const raw = (await cookies()).get(VEHICLE_CTX_COOKIE)?.value;
       vid = raw?.startsWith("v:") ? raw.slice(2) : null;
     }
-    await cart.addToCart(userId, productId, qty, vid);
+    await cart.addToCart(userId, productId, qty, vid, offerId);
     revalidatePath("/", "layout");
     return { ok: true, count: await cart.getCartCount(userId) };
   } catch (e) {
@@ -88,4 +89,28 @@ export async function checkoutAction(_prev: ActionState, fd: FormData): Promise<
   }
   revalidatePath("/", "layout");
   redirect(`/checkout/success?n=${number}`);
+}
+
+const phoneOk = (p: string) => p.replace(/\D/g, "").length >= 10;
+
+export async function callbackAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  const phone = String(fd.get("phone") ?? "").trim();
+  if (!phoneOk(phone)) return { fieldErrors: { phone: ["Вкажіть номер телефону"] } };
+  await createCallback({ phone, name: String(fd.get("name") ?? "").trim(), comment: String(fd.get("comment") ?? "").trim(), productId: String(fd.get("productId") ?? "") || undefined });
+  return { ok: true, message: "Дякуємо! Менеджер передзвонить найближчим часом." };
+}
+
+export async function quickOrderAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  const phone = String(fd.get("phone") ?? "").trim();
+  if (!phoneOk(phone)) return { fieldErrors: { phone: ["Вкажіть номер телефону"] } };
+  try {
+    const order = await quickOrder({
+      productId: String(fd.get("productId") ?? ""), qty: Number(fd.get("qty") ?? 1) || 1,
+      name: String(fd.get("name") ?? "").trim(), phone, userId: await uid(),
+    });
+    revalidatePath("/admin", "layout");
+    return { ok: true, message: `Замовлення №${order.number} прийнято. Менеджер передзвонить, щоб уточнити доставку.` };
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
 }

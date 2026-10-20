@@ -3,11 +3,9 @@
 import * as React from "react";
 import Link from "next/link";
 import { useActionState } from "react";
-import { KeyRound, Smartphone } from "lucide-react";
-import { loginAction, phoneOtpAction, registerAction } from "@/server/actions/auth";
+import { loginAction, registerAction } from "@/server/actions/auth";
 import { Field, FormMessage, SubmitButton } from "@/components/shared/form";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { ActionState } from "@/lib/validators";
 
 const DEMO_USERS = [
@@ -18,7 +16,6 @@ const DEMO_USERS = [
 
 export function LoginForm({ callbackUrl, demo }: { callbackUrl?: string; demo: boolean }) {
   const [state, action] = useActionState<ActionState, FormData>(loginAction, {});
-  const [otp, otpAction] = useActionState<ActionState, FormData>(phoneOtpAction, {});
   const formRef = React.useRef<HTMLFormElement>(null);
 
   const fill = (email: string) => {
@@ -31,34 +28,17 @@ export function LoginForm({ callbackUrl, demo }: { callbackUrl?: string; demo: b
 
   return (
     <div className="grid gap-6">
-      <Tabs defaultValue="email">
-        <TabsList>
-          <TabsTrigger value="email"><KeyRound className="mr-1.5 inline size-4" />Email і пароль</TabsTrigger>
-          <TabsTrigger value="phone"><Smartphone className="mr-1.5 inline size-4" />Телефон</TabsTrigger>
-        </TabsList>
-        <TabsContent value="email">
-          <form ref={formRef} action={action} className="grid gap-4" noValidate>
-            <input type="hidden" name="callbackUrl" value={callbackUrl ?? ""} />
-            <Field label="Email" htmlFor="email" error={state.fieldErrors?.email}>
-              <Input id="email" name="email" type="email" autoComplete="email" inputMode="email" required aria-invalid={!!state.fieldErrors?.email} />
-            </Field>
-            <Field label="Пароль" htmlFor="password" error={state.fieldErrors?.password}>
-              <Input id="password" name="password" type="password" autoComplete="current-password" required aria-invalid={!!state.fieldErrors?.password} />
-            </Field>
-            <FormMessage state={state} />
-            <SubmitButton size="lg" pendingText="Входимо…">Увійти</SubmitButton>
-          </form>
-        </TabsContent>
-        <TabsContent value="phone">
-          <form action={otpAction} className="grid gap-4">
-            <Field label="Номер телефону" htmlFor="phone" error={otp.fieldErrors?.phone} hint="Надішлемо SMS з одноразовим кодом">
-              <Input id="phone" name="phone" type="tel" inputMode="tel" placeholder="+380 67 123 45 67" autoComplete="tel" />
-            </Field>
-            <FormMessage state={otp} />
-            <SubmitButton size="lg" variant="secondary">Отримати код</SubmitButton>
-          </form>
-        </TabsContent>
-      </Tabs>
+      <form ref={formRef} action={action} className="grid gap-4" noValidate>
+        <input type="hidden" name="callbackUrl" value={callbackUrl ?? ""} />
+        <Field label="Email" htmlFor="email" error={state.fieldErrors?.email}>
+          <Input id="email" name="email" type="email" autoComplete="email" inputMode="email" required aria-invalid={!!state.fieldErrors?.email} />
+        </Field>
+        <Field label="Пароль" htmlFor="password" error={state.fieldErrors?.password}>
+          <Input id="password" name="password" type="password" autoComplete="current-password" required aria-invalid={!!state.fieldErrors?.password} />
+        </Field>
+        <FormMessage state={state} />
+        <SubmitButton size="lg" pendingText="Входимо…">Увійти</SubmitButton>
+      </form>
 
       <p className="text-center text-sm text-muted-foreground">
         Немає акаунта? <Link href={`/register${callbackUrl ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : ""}`} className="font-semibold text-foreground underline">Зареєструватися</Link>

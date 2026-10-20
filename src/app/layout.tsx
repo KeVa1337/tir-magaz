@@ -4,6 +4,7 @@ import "@fontsource-variable/jetbrains-mono";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { themeInitScript } from "@/components/shared/theme";
+import { DemoPanelServer } from "@/components/shared/demo-panel-server";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </head>
       <body className="min-h-dvh">
         {children}
+        <DemoPanelServer />
         <Toaster position="top-center" richColors closeButton theme="system" />
       </body>
     </html>

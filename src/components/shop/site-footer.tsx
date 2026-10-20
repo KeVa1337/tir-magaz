@@ -20,6 +20,8 @@ export async function SiteFooter() {
         </div>
         <div className="grid content-start gap-2 text-sm">
           <p className="font-bold text-white">Покупцям</p>
+          <Link href="/order-status" className="hover:text-white">Статус замовлення</Link>
+          <Link href="/favorites" className="hover:text-white">Обране</Link>
           <Link href="/delivery-payment" className="hover:text-white">Доставка і оплата</Link>
           <Link href="/warranty-returns" className="hover:text-white">Гарантія і повернення</Link>
           <Link href="/about" className="hover:text-white">Про нас</Link>

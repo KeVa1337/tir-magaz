@@ -3,6 +3,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PartArt, hasPartArt } from "./part-art";
 
 const ICONS: Record<string, LucideIcon> = {
   engine: Cog, disc: Disc3, wind: Wind, spring: Waves, cabin: Armchair, gear: Settings2,
@@ -15,10 +16,16 @@ export function CategoryIcon({ icon, className }: { icon?: string | null; classN
 }
 
 /** Плейсхолдер фото товару — нейтральна іконка категорії на технічній сітці. */
-export function ProductImage({ src, alt, icon, className }: { src?: string | null; alt: string; icon?: string | null; className?: string }) {
+export function ProductImage({ src, alt, icon, kind, className }: { src?: string | null; alt: string; icon?: string | null; kind?: string | null; className?: string }) {
   if (src)
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={src} alt={alt} className={cn("h-full w-full object-contain", className)} loading="lazy" />;
+  if (hasPartArt(kind))
+    return (
+      <div className={cn("bg-grid flex h-full w-full items-center justify-center bg-gradient-to-br from-muted/80 to-card", className)} role="img" aria-label={alt}>
+        <PartArt kind={kind!} className="h-3/4 w-3/4 max-w-96" />
+      </div>
+    );
   return (
     <div className={cn("bg-grid flex h-full w-full items-center justify-center bg-muted/60", className)} role="img" aria-label={alt}>
       <CategoryIcon icon={icon} className="size-1/3 max-h-16 max-w-16 text-muted-foreground/50" />

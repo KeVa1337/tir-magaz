@@ -35,7 +35,7 @@ export function StatusChanger({ orderId, status }: { orderId: string; status: Or
   );
 }
 
-interface Item { id: string; name: string; article: string; brandName: string | null; price: number; qty: number }
+interface Item { id: string; name: string; article: string; brandName: string | null; price: number; qty: number; warehouse?: string | null; leadDays?: number | null }
 
 export function OrderItemsEditor({ orderId, items, editable }: { orderId: string; items: Item[]; editable: boolean }) {
   const total = items.reduce((s, i) => s + i.price * i.qty, 0);
@@ -63,7 +63,7 @@ function ItemRow({ orderId, item, editable }: { orderId: string; item: Item; edi
   const save = (q = Number(qty)) => start(async () => { const r = await updateOrderItemAction(orderId, item.id, q, Number(price)); if (!r.ok) toast.error(r.error); });
   return (
     <li className="grid gap-2 px-5 py-3 sm:grid-cols-[1fr_auto] sm:items-center">
-      <span className="min-w-0"><span className="block text-sm font-semibold">{item.name}</span><span className="font-num text-xs text-muted-foreground">{item.article} · {item.brandName}</span></span>
+      <span className="min-w-0"><span className="block text-sm font-semibold">{item.name}</span><span className="font-num text-xs text-muted-foreground">{item.article} · {item.brandName}</span>{item.warehouse && <span className="block text-xs text-info">{item.warehouse}{item.leadDays ? ` · ${item.leadDays} дн.` : ""}</span>}</span>
       {editable ? (
         <span className="flex items-center gap-1.5">
           <Input aria-label="Ціна" value={price} onChange={(e) => setPrice(e.target.value.replace(/[^\d.]/g, ""))} className="h-8 w-24 text-right font-num" />

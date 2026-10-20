@@ -21,6 +21,7 @@ export default async function SuccessPage({ searchParams }: PageProps<"/checkout
       <p className="mt-3 text-muted-foreground">Менеджер перевірить наявність і зателефонує для підтвердження. Статус: «очікує підтвердження». Телефон: <a className="font-num font-semibold text-foreground" href={`tel:${general.phone.replace(/\s/g, "")}`}>{general.phone}</a></p>
       <div className="mt-8 flex flex-wrap justify-center gap-2">
         {user && n ? <Button asChild><Link href={`/account/orders/${n}`}>Переглянути замовлення</Link></Button> : <Button asChild><Link href="/register">Створити кабінет</Link></Button>}
+        {!user && n && <Button asChild variant="outline"><Link href={`/order-status?n=${n}`}>Як відстежити</Link></Button>}
         <Button asChild variant="outline"><Link href="/catalog">Продовжити покупки</Link></Button>
       </div>
     </div>

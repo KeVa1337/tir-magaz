@@ -13,7 +13,13 @@ npm run db:seed                 # демо-дані: 10 марок, ~220 тов�
 npm run dev                     # http://localhost:3000
 ```
 
-Демо-доступи (пароль `demo1234`): `client@demo.ua` · `manager@demo.ua` · `admin@demo.ua`. На сторінці входу є кнопки швидкого входу (вимикається `DEMO_MODE=false`).
+Демо-доступи (пароль `demo1234`): `client@demo.ua` · `manager@demo.ua` · `admin@demo.ua`.
+
+У демо-режимі (`DEMO_MODE=true`) у кутку кожної сторінки є **демо-панель**: перемикання «Гість / Клієнт / Менеджер / Адмін» одним кліком без пароля і список «Що спробувати».
+
+> ⚠️ `DEMO_MODE=true` дозволяє будь-кому увійти як адміністратор. Для справжнього магазину обов'язково `DEMO_MODE=false`.
+
+Розгортання на власному сервері: `npm ci && npm run build && npm run db:setup && npm start` (`db:setup` = міграції + демо-дані; повторний запуск seed скидає дані до початкових).
 
 Повне демо на VPS: `AUTH_SECRET=… docker compose --profile app up -d --build`, потім `docker compose exec app npm run db:seed`.
 
@@ -28,6 +34,11 @@ npm run dev                     # http://localhost:3000
 | Комплекти ТО одним кліком | `/kits` |
 | Напівпричепи за марками осей BPW / SAF / ROR | `/trailers` |
 | Адмінка: дашборд з SLA, замовлення, товари з інлайн-редагуванням і масовими діями, категорії drag&drop, імпорт XLSX/CSV з шаблонами мапінгу, журнал дій | `/admin` |
+| Підбір без реєстрації: марка → серія → двигун → рік | `/pidbir` |
+| Схеми вузлів: клік по деталі на кресленні → сумісні товари | `/schemes` |
+| Наявність на кількох складах із різними термінами й цінами | картка товару |
+| «Купити в 1 клік», «Передзвоніть мені», кнопки Telegram/Viber | картка товару, шапка, кнопка чату |
+| Нагадування про ТО за пробігом, обране й переглянуті, статус замовлення для гостя | гараж, `/favorites`, `/order-status` |
 
 ## Стек
 Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 · компоненти shadcn/ui-стилю на Radix · PostgreSQL + Prisma 6 (`pg_trgm`) · Auth.js v5 (Credentials, JWT) · Zod · TanStack Table · dnd-kit · ExcelJS + PapaParse.

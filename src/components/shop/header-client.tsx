@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Boxes, Car, LayoutDashboard, LogIn, LogOut, Menu, Package, ScanLine, Search, ShoppingCart, User, Wrench, Container } from "lucide-react";
+import { Boxes, Car, Network, LayoutDashboard, LogIn, LogOut, Menu, Package, ScanLine, Search, ShoppingCart, User, Wrench, Container } from "lucide-react";
 import { Dialog, DialogTrigger, SheetContent, DialogClose } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
@@ -13,9 +13,11 @@ import { cn } from "@/lib/utils";
 
 export const NAV = [
   { href: "/catalog", label: "Каталог", icon: Boxes },
-  { href: "/trailers", label: "Напівпричепи", icon: Container },
+  { href: "/pidbir", label: "Підбір за авто", icon: Car },
+  { href: "/schemes", label: "Схеми вузлів", icon: Network },
+  { href: "/trailers", label: "Причепи", icon: Container },
   { href: "/kits", label: "Комплекти ТО", icon: Wrench },
-  { href: "/vin", label: "Підбір за VIN", icon: ScanLine },
+  { href: "/vin", label: "VIN", icon: ScanLine },
 ];
 
 export function Logo({ className }: { className?: string }) {

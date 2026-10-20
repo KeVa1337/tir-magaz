@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Car, ClipboardCheck, Clock, Container, Database, Phone, ScanLine, ShieldCheck, Truck, Wrench } from "lucide-react";
+import { ArrowRight, Car, Network, ClipboardCheck, Clock, Container, Database, Phone, ScanLine, ShieldCheck, Truck, Wrench } from "lucide-react";
 import { getBanners, getCategoryTree, getFaq, getKits, getPopularProducts, getVehicleMakes, kitTotal } from "@/server/services/catalog";
 import { getSettings } from "@/server/services/settings";
 import { getShopContext } from "@/server/context";
@@ -40,7 +40,8 @@ export default async function HomePage() {
           </div>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Button asChild size="xl"><Link href="/vin"><ScanLine /> Підібрати за VIN</Link></Button>
-            <Button asChild size="xl" variant="outline"><Link href={ctx ? "/catalog?fit=1" : "/account/garage/new"}><Car /> {ctx ? `Деталі для ${ctx.shortLabel}` : "Підібрати під моє авто"}</Link></Button>
+            <Button asChild size="xl" variant="outline"><Link href={ctx ? "/catalog?fit=1" : "/pidbir"}><Car /> {ctx ? `Деталі для ${ctx.shortLabel}` : "Підібрати під моє авто"}</Link></Button>
+            <Button asChild size="xl" variant="outline"><Link href="/schemes"><Network /> Деталь за схемою</Link></Button>
           </div>
         </div>
       </section>
