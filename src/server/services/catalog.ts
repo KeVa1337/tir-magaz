@@ -27,6 +27,15 @@ export interface ProductCardDTO {
   offers: number; offerMinPrice: number | null; offerMinLead: number | null;
 }
 
+const FIT_RANK = { fits: 0, maybe: 1, no: 2 } as const;
+/** Стабільно: «підходить» → «уточніть» → «не підходить». */
+export function sortByFit<T extends { fit: FitResult | null }>(items: T[]): T[] {
+  return items
+    .map((it, i) => ({ it, i }))
+    .sort((a, b) => (a.it.fit ? FIT_RANK[a.it.fit.status] : 0) - (b.it.fit ? FIT_RANK[b.it.fit.status] : 0) || a.i - b.i)
+    .map((x) => x.it);
+}
+
 export function toCard(p: CardRow, ctx: VehicleContext | null): ProductCardDTO {
   return {
     id: p.id, slug: p.slug, name: p.name, article: p.article, brand: p.brand.name, isOriginal: p.brand.isOriginal,
@@ -114,10 +123,31 @@ export async function listProducts(f: ProductFilters, ctx: VehicleContext | null
   const perPage = f.perPage ?? 24;
   const page = Math.max(1, f.page ?? 1);
   const where = buildWhere(f, ctx);
-  const [rows, total] = await Promise.all([
-    db.product.findMany({ where, select: productCardSelect, orderBy: orderBy(f.sort), skip: (page - 1) * perPage, take: perPage }),
-    db.product.count({ where }),
-  ]);
+  const skip = (page - 1) * perPage;
+  let rows: CardRow[];
+  let total: number;
+  if (ctx && !f.onlyFit) {
+    // Є «Моє авто» — спершу те, що підходить, потім решта (зі збереженням обраного сортування).
+    const fitWhere: Prisma.ProductWhereInput = { AND: [where, whereForVehicle(ctx)] };
+    const restWhere: Prisma.ProductWhereInput = { AND: [where, { NOT: whereForVehicle(ctx) }] };
+    const [fitTotal, restTotal] = await Promise.all([db.product.count({ where: fitWhere }), db.product.count({ where: restWhere })]);
+    total = fitTotal + restTotal;
+    const fitTake = Math.max(0, Math.min(perPage, fitTotal - skip));
+    const [fitRows, restRows] = await Promise.all([
+      fitTake ? db.product.findMany({ where: fitWhere, select: productCardSelect, orderBy: orderBy(f.sort), skip, take: fitTake }) : [],
+      perPage - fitTake
+        ? db.product.findMany({ where: restWhere, select: productCardSelect, orderBy: orderBy(f.sort), skip: Math.max(0, skip - fitTotal), take: perPage - fitTake })
+        : [],
+    ]);
+    rows = [...fitRows, ...restRows];
+    const items = sortByFit(rows.map((r) => toCard(r, ctx)));
+    return { items, total, page, perPage, pages: Math.max(1, Math.ceil(total / perPage)) };
+  } else {
+    [rows, total] = await Promise.all([
+      db.product.findMany({ where, select: productCardSelect, orderBy: orderBy(f.sort), skip, take: perPage }),
+      db.product.count({ where }),
+    ]);
+  }
   return { items: rows.map((r) => toCard(r, ctx)), total, page, perPage, pages: Math.max(1, Math.ceil(total / perPage)) };
 }
 

@@ -2,7 +2,7 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 import { db } from "@/server/db";
 import { looksLikeVin, normalize } from "@/lib/normalize";
-import { productCardSelect, toCard, type ProductCardDTO } from "./catalog";
+import { productCardSelect, sortByFit, toCard, type ProductCardDTO } from "./catalog";
 import { getSettings } from "./settings";
 import type { VehicleContext } from "./fitment";
 
@@ -123,6 +123,7 @@ export async function search(qRaw: string, ctx: VehicleContext | null, limit = 6
     const catConds = groups.map((variants) => ({ OR: variants.map((v) => ({ name: { contains: v, mode: "insensitive" as const } })) }));
     result.categories = await db.category.findMany({ where: { isActive: true, AND: catConds }, select: { name: true, slug: true }, take: 5 });
   }
+  if (ctx) result.hits = sortByFit(result.hits);
   return result;
 }
 
